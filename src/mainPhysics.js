@@ -238,7 +238,7 @@ orbitControl.update
 // resize ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 window.addEventListener('resize',(eve)=>{
-    // canvasElement.style.cssText = 'width:100vw ;height:100vh';
+    canvasElement.style.cssText = 'width:100vw ;height:100vh';
       console.log(canvasSize.aspect())
     camera.aspect = canvasSize.aspect()
     renderer.setSize(canvasSize.width(),canvasSize.height())

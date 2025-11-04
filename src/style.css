@@ -102,7 +102,7 @@ button:focus-visible {
 
 canvas#canvas{
   margin-inline: auto;
-  width: 100%vw;
+  width: 100vw;
   height: 100vh;
   
 }
