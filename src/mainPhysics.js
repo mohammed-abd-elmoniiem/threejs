@@ -34,7 +34,7 @@ const canvasSize ={
 // intialize scene ,camera , renderer++++++++++++++++++++++++++++++++++++++++++
 
 const scene = new THREE.Scene()
-scene.fog = new THREE.Fog(0xcccccc,1,30)
+scene.fog = new THREE.Fog(0x888888,1,30)
 // scene.overrideMaterial = new THREE.MeshDepthMaterial()
 
 
@@ -58,12 +58,13 @@ renderer.render(scene,camera)
  const world =new  CANNON.World()
  world.gravity.set(0,-9.82,0);
  world.allowSleep = true
+//  world.broadphase = new CANNON.GridBroadphase
 
  const metalMaterial = new CANNON.Material('metal')
  const groundMaterial = new CANNON.Material('concrete')
 
 const ballGroundContact = new CANNON.ContactMaterial(metalMaterial,groundMaterial,{
-    friction:0.3,
+    friction:0.8,
     restitution:0.3,
 })
 world.addContactMaterial(ballGroundContact);
@@ -75,14 +76,17 @@ world.addContactMaterial(ballGroundContact);
 // ----------------------------------------------------
 const objects = []
 
-const matCube = new THREE.MeshPhongMaterial({ color:0xee1122,wireframe:true})
+const matCube = new THREE.MeshStandardMaterial({metalness:0.5,roughness:0.4, wireframe:false})
+const geoCube = new THREE.BoxGeometry(1,1,1);
+
 
 function createCube(length,position){
-const geoCube = new THREE.BoxGeometry(length, length,length,2,2,2);
      
 
      const cube = new THREE.Mesh(geoCube , matCube);
+     
      cube.castShadow = true
+     cube.scale.set(length ,length,length)
      cube.position.copy(position)
      scene.add(cube)
 
@@ -116,13 +120,13 @@ function createGridOfCubes(number,length){
 }
 const cubesProprities = {
     count:5,
-    length:0.3,
-    mass:2
+    length:0.1,
+    mass:0.1
 
 }
 
 const ballPropeties ={
-    mass:10
+    mass:100
 }
 
 const ballGui = gui.addFolder('ball properties')
@@ -151,7 +155,8 @@ function valuesCahanges(value){
     sphereBody.torque.setZero()
     sphereBody.velocity.setZero()
 
-    sphereBody.position.set(cubesProprities.count* cubesProprities.length *0.5  , cubesProprities.count, cubesProprities.count * cubesProprities.length *0.5)
+    sphereBody.position.set(cubesProprities.count* cubesProprities.length *0.5  , cubesProprities.count *2, cubesProprities.count * cubesProprities.length *0.5);
+    
     sphereBody.position.y = cubesProprities.count
     sphereBody.mass = ballPropeties.mass
     console.log(sphereBody)
@@ -177,11 +182,11 @@ const bigBox = new THREE.Mesh(
 scene.add(bigBox)
 //    ^ ground******
 const geoGround  = new THREE.PlaneGeometry(200,200,64,64);
-const matGround = new THREE.MeshStandardMaterial({color:0xcccccc , side:THREE.DoubleSide,metalness:0.7,roughness:0.5})
+const matGround = new THREE.MeshMatcapMaterial({matcap:new THREE.TextureLoader().load('/textures/matcaps/8.png')})
 
 const ground = new THREE.Mesh(geoGround , matGround)
-ground.rotation.x = Math.PI * 0.5
-// ground.receiveShadow =true
+ground.rotation.x = Math.PI *- 0.5
+ground.receiveShadow =true
 scene.add(ground)
 
  const groundBody = new CANNON.Body({
@@ -194,11 +199,20 @@ scene.add(ground)
  world.addBody(groundBody)
 
 // ball ++++++
-const geoBall = new THREE.SphereGeometry(cubesProprities.length *0.5, 16,16);
-const matBall = new THREE.MeshPhysicalMaterial({color:0xeeeeee,metalness:0.4,roughness:0.2 })
+const geoBall = new THREE.SphereGeometry(cubesProprities.length , 64,64);
+const matBall = new THREE.MeshPhysicalMaterial({color:0xfffb09,metalness:0.0,roughness:0.02,envMapIntensity:1.2,clearcoat:1,clearcoatRoughness:0.6,sheen:0.2,reflectivity:1,transmission:1,emissive:0xffad14})
+
+ballGui.add(matBall,'clearcoat',0,1)
+ballGui.add(matBall,'sheen',0,1,0.5)
+ballGui.add(matBall,'reflectivity',0,1)
+ballGui.add(matBall,'transmission',0,1)
+ballGui.add(matBall,'clearcoatRoughness',0,1)
+
+
+
 
 const ball = new THREE.Mesh(geoBall , matBall);
-// ball.castShadow =true;
+ball.castShadow =true;
 // ball.position.y = 15
 scene.add(ball)
 
@@ -207,7 +221,7 @@ scene.add(ball)
  const sphereBody = new CANNON.Body({
     mass:3,
     position:new CANNON.Vec3(0,5,0),
-    shape:new CANNON.Sphere(0.3),
+    shape:new CANNON.Sphere(cubesProprities.length ),
     material:metalMaterial,
  })
 
@@ -270,10 +284,14 @@ animate()
 
 // lights +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-const dirLight = new THREE.DirectionalLight(0xffffff,2)
+const dirLight = new THREE.DirectionalLight(0xffffff,1)
 dirLight.position.set(5,15,-5);
-// dirLight.castShadow =true
-const amLight = new THREE.AmbientLight(0xeeeeee,0.2)
+dirLight.castShadow =true
+const amLight = new THREE.AmbientLight(0xeeeeee,0.01)
+
+const pointLight = new THREE.PointLight(0xffad14,3,6);
+pointLight.castShadow=true
+ball.add(pointLight)
 
 scene.add(dirLight , amLight)
 

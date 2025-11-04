@@ -104,5 +104,6 @@ canvas#canvas{
   margin-inline: auto;
   width: 100vw;
   height: 100vh;
+  /* border: #e2e2e2 1px solid; */
   
 }
