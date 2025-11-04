@@ -201,6 +201,8 @@ function animate(){
 
     // console.log(eTime , clock.getDelta());
 
+    camera.lookAt(new THREE.Vector3(0,0,0))
+
     renderer.render(scene,camera);
     requestAnimationFrame(animate)
 }
@@ -242,6 +244,7 @@ window.addEventListener('resize',(eve)=>{
     renderer.setSize(canvasSize.width(),canvasSize.height())
     renderer.setPixelRatio = Math.min(window.devicePixelRatio , 2);
     camera.updateProjectionMatrix()
+    renderer.render(scene,camera)
     
 })
 
