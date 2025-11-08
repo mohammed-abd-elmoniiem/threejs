@@ -1,12 +1,17 @@
 
 
 import  * as THREE from 'three'
-import { OrbitControls, FlyControls } from 'three/examples/jsm/Addons.js';
+import { OrbitControls, FlyControls, RenderPass, GTAOPass, SMAAPass, SSRPass, BloomPass, UnrealBloomPass, HalftonePass, BokehPass} from 'three/examples/jsm/Addons.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { GlitchPass } from 'three/examples/jsm/Addons.js';
 
 import * as CANNON from 'cannon-es'
 
 import GUI from 'lil-gui';
-// import { button } from 'motion/react-client';
+import { ssaaPass } from 'three/examples/jsm/tsl/display/SSAAPassNode.js';
+
+
+console.log(EffectComposer,GlitchPass)
 
 
 // gui ++++++++++++++++++++++++++++++++++++++++++
@@ -38,6 +43,23 @@ scene.fog = new THREE.Fog(0x888888,1,30)
 // scene.overrideMaterial = new THREE.MeshDepthMaterial()
 
 
+/**
+ * Environment map
+ */
+// const environmentMap = cubeTextureLoader.load([
+//     '/textures/environmentMaps/0/px.jpg',
+//     '/textures/environmentMaps/0/nx.jpg',
+//     '/textures/environmentMaps/0/py.jpg',
+//     '/textures/environmentMaps/0/ny.jpg',
+//     '/textures/environmentMaps/0/pz.jpg',
+//     '/textures/environmentMaps/0/nz.jpg'
+// ])
+// environmentMap.encoding = THREE.sRGBEncoding
+
+// scene.background = environmentMap
+// scene.environment = environmentMap
+
+
 const camera = new  THREE.PerspectiveCamera(90,canvasSize.aspect(),0.1,2000)
 camera.position.set(0,5,5)
 camera.lookAt(new THREE.Vector3(0,0,0))
@@ -46,7 +68,10 @@ scene.add(camera)
 
 const renderer = new THREE.WebGLRenderer({antialias:true , canvas:canvasElement});
 renderer.setSize(canvasSize.width(),canvasSize.height());
-renderer.render(scene,camera)
+renderer.render(scene,camera);
+
+const effectComposer = new EffectComposer(renderer);
+effectComposer.setSize(canvasSize.width(),canvasSize.height());
 
 // renderer.shadowMap.enabled = true
 
@@ -76,7 +101,7 @@ world.addContactMaterial(ballGroundContact);
 // ----------------------------------------------------
 const objects = []
 
-const matCube = new THREE.MeshStandardMaterial({metalness:0.5,roughness:0.4, wireframe:false})
+const matCube = new THREE.MeshStandardMaterial({metalness:0.7,roughness:0.1, wireframe:false})
 const geoCube = new THREE.BoxGeometry(1,1,1);
 
 
@@ -142,6 +167,8 @@ cubesGui.add(cubesProprities,'mass',0.1,100,0.1);
 gui.add({reset:false},'reset').onChange(valuesCahanges)
 
 function valuesCahanges(value){
+    const radius = cubesProprities.length;
+
 
     for(const object of objects){
         world.removeBody(object.cubeBody)
@@ -155,9 +182,24 @@ function valuesCahanges(value){
     sphereBody.torque.setZero()
     sphereBody.velocity.setZero()
 
-    sphereBody.position.set(cubesProprities.count* cubesProprities.length *0.5  , cubesProprities.count *2, cubesProprities.count * cubesProprities.length *0.5);
+    const ballPosition = [ 
+        cubesProprities.count* cubesProprities.length *0.5  ,
+         cubesProprities.length * cubesProprities.count * 5,
+          cubesProprities.count * cubesProprities.length *0.5]
+       
     
-    sphereBody.position.y = cubesProprities.count
+
+
+    sphereBody.position.set(...ballPosition);
+
+    ball.scale.set(radius ,radius ,radius)
+    
+    
+
+    sphereBody.addShape(new CANNON.Sphere(radius))
+
+    console.log(sphereBody)
+    
     sphereBody.mass = ballPropeties.mass
     console.log(sphereBody)
 
@@ -199,8 +241,8 @@ scene.add(ground)
  world.addBody(groundBody)
 
 // ball ++++++
-const geoBall = new THREE.SphereGeometry(cubesProprities.length , 64,64);
-const matBall = new THREE.MeshPhysicalMaterial({color:0xfffb09,metalness:0.0,roughness:0.02,envMapIntensity:1.2,clearcoat:1,clearcoatRoughness:0.6,sheen:0.2,reflectivity:1,transmission:1,emissive:0xffad14})
+const geoBall = new THREE.SphereGeometry(1 , 64,64);
+const matBall = new THREE.MeshPhysicalMaterial({color:0xfffb09,metalness:0.0,roughness:0.02,envMapIntensity:1.2,clearcoat:1,clearcoatRoughness:0.4,sheen:0.2,reflectivity:1,transmission:1,emissive:0xffad14})
 
 ballGui.add(matBall,'clearcoat',0,1)
 ballGui.add(matBall,'sheen',0,1,0.5)
@@ -212,6 +254,7 @@ ballGui.add(matBall,'clearcoatRoughness',0,1)
 
 
 const ball = new THREE.Mesh(geoBall , matBall);
+ball.scale.set(cubesProprities.length *0.5 ,cubesProprities.length *0.5,cubesProprities.length *0.5);
 ball.castShadow =true;
 // ball.position.y = 15
 scene.add(ball)
@@ -220,10 +263,13 @@ scene.add(ball)
 
  const sphereBody = new CANNON.Body({
     mass:3,
-    position:new CANNON.Vec3(0,5,0),
-    shape:new CANNON.Sphere(cubesProprities.length ),
+    position:new CANNON.Vec3(cubesProprities.count* cubesProprities.length *0.5  , cubesProprities.length * cubesProprities.count * 2, cubesProprities.count * cubesProprities.length *0.5),
+    shape:new CANNON.Sphere(cubesProprities.length),
     material:metalMaterial,
  })
+
+
+
 
  world.addBody(sphereBody)
 
@@ -233,6 +279,74 @@ scene.add(ball)
 
 
 // --------------------------------------------------------------------objects
+
+
+// postprocessing ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+const renderPass = new RenderPass(scene,camera);
+effectComposer.addPass(renderPass)
+
+
+// glitch effect
+const glitchPass = new GlitchPass()
+effectComposer.addPass(glitchPass);
+
+const postprocessingGUI  = gui.addFolder('effects')
+postprocessingGUI.add(glitchPass,'enabled').name('glitch')
+postprocessingGUI.add(glitchPass,'goWild').name('glitch wild')
+
+// gray effect
+
+const gtaPass = new GTAOPass(scene,camera)
+
+effectComposer.addPass(gtaPass)
+postprocessingGUI.add(gtaPass,'enabled').name('GTA')
+postprocessingGUI.add(gtaPass,'blendIntensity',0,5,0.1).name('GTA inten')
+
+
+
+
+
+// antialias +++++
+
+const smaaPass = new SMAAPass()
+effectComposer.addPass(smaaPass)
+postprocessingGUI.add(smaaPass,'enabled').name('antialias')
+// postprocessingGUI.add(smaaPass,'uniformsBlend',0,10,0.1).name('antialias');
+
+const bloomPass = new UnrealBloomPass(0.1,0.1,0.1)
+effectComposer.addPass(bloomPass)
+
+postprocessingGUI.add(bloomPass,'enabled').name('bloom');
+// postprocessingGUI.add(bloomPass,'threshold',0,1,0.01).name('threshold');
+postprocessingGUI.add(bloomPass,'strength',0,1,0.01).name('strength');
+postprocessingGUI.add(bloomPass,'radius',0,1,0.01).name('radius');
+
+// halftone
+
+const halfTonePass = new HalftonePass();
+
+effectComposer.addPass(halfTonePass)
+console.log(halfTonePass)
+postprocessingGUI.add(halfTonePass,'enabled').name('halftone');
+// postprocessingGUI.add(halfTonePass,'uniforms').name('scatter');
+
+
+// bokah
+const bokahPass = new BokehPass(scene,camera,{focus:0.5});
+
+effectComposer.addPass(bokahPass)
+
+postprocessingGUI.add(bokahPass,'enabled')
+postprocessingGUI.add(bokahPass.uniforms.focus,'value',0,5,0.1).name('focus')
+
+
+
+
+
+
+
+// ------------------------------------------------------------------------ postprocessing
 
 // controls +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -272,9 +386,9 @@ function animate(){
 control.update(clock.getDelta())
 
 
-    camera.lookAt(new THREE.Vector3(0,0,0))
+    camera.lookAt(ball.position)
 
-    renderer.render(scene,camera);
+   effectComposer.render(scene,camera);
     requestAnimationFrame(animate)
 }
 animate()
